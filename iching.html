@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>幸運數字占卜</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #f2f2f7;
+            --card-bg: #ffffff;
+            --text-color: #000000;
+            --accent: #007aff;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #000000;
+                --card-bg: #1c1c1e;
+                --text-color: #ffffff;
+            }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: env(safe-area-inset-top) 20px 20px 20px;
+        }
+
+        .header { margin: 40px 0 20px; }
+        h1 { font-size: 34px; font-weight: 700; margin-bottom: 5px; }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-size: 18px;
+            color: var(--text-color);
+            padding: 10px 0;
+            outline: none;
+        }
+
+        button {
+            width: 100%;
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        .result-card {
+            display: none;
+            border-left: 8px solid var(--accent);
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 5px;
+            background: #e5e5ea;
+            color: #3a3a3c;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #38383a22;
+            padding: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>幸運數字</h1>
+        <p style="opacity: 0.6;">輸入您的號碼以獲取卦象資訊</p>
+    </div>
+
+    <div class="card">
+        <input type="number" id="numInput" placeholder="輸入數字 (例如: 61205702)" inputmode="numeric">
+        <button onclick="calculate()">開始占卜 <i class="fas fa-sparkles"></i></button>
+    </div>
+
+    <div id="result" class="card result-card">
+        <div id="tagContainer" style="margin-bottom: 10px;"></div>
+        <h2 id="resName" style="margin: 0 0 10px 0;"></h2>
+        <p id="resDesc" style="font-size: 15px; line-height: 1.4; opacity: 0.8;"></p>
+    </div>
+
+    <div class="header" style="margin-top: 40px;">
+        <h3>歷史紀錄</h3>
+    </div>
+    <div id="history" class="card">
+        <p id="noHistory" style="opacity: 0.5;">尚無紀錄</p>
+    </div>
+
+    <script>
+        // Logic mapped from Excel "幸運數字"
+        function calculate() {
+            const val = document.getElementById('numInput').value;
+            if (!val) return;
+
+            let result = { name: "未知", color: "灰色", element: "未知", desc: "查無此數之卦象" };
+
+            // Replicating Excel lookups[cite: 1]
+            if (val.includes("6120")) {
+                result = { name: "訟", color: "藍色", element: "火", desc: "非常不好的卦，打官司，是非小人，要訂定仔細合同做事。" };
+            } else if (val.includes("57")) {
+                result = { name: "歸妹", color: "藍色", element: "金", desc: "回歸，再次或重新做一些事情，在感情上代表有三角關係。" };
+            } else if (val.includes("7")) {
+                result = { name: "損", color: "藍色", element: "土", desc: "先短期付出才會有成果。" };
+            } else if (val.includes("205")) {
+                result = { name: "大畜", color: "紅色", element: "土", desc: "豐收，農業上是非常好卦。" };
+            } else if (val.includes("05")) {
+                result = { name: "小畜", color: "紅色", element: "木", desc: "小收穫，做生意代表好卦。" };
+            } else if (val.includes("120")) {
+                result = { name: "未濟", color: "黑色", element: "火", desc: "很多事情需要處理好才能成功。" };
+            }
+
+            displayResult(val, result);
+        }
+
+        function displayResult(input, res) {
+            const card = document.getElementById('result');
+            card.style.display = 'block';
+            card.style.borderLeftColor = getColor(res.color);
+            
+            document.getElementById('resName').innerText = res.name;
+            document.getElementById('resDesc').innerText = res.desc;
+            document.getElementById('tagContainer').innerHTML = `
+                <span class="tag" style="background:${getColor(res.color)}; color:white">${res.color}</span>
+                <span class="tag">${res.element}</span>
+            `;
+
+            saveHistory(input, res.name);
+        }
+
+        function getColor(colorName) {
+            if (colorName === "藍色") return "#007aff";
+            if (colorName === "紅色") return "#ff3b30";
+            if (colorName === "黑色") return "#000000";
+            return "#8e8e93";
+        }
+
+        function saveHistory(num, name) {
+            const hist = document.getElementById('history');
+            const noHist = document.getElementById('noHistory');
+            if (noHist) noHist.remove();
+
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.innerHTML = `<span>${num}</span><strong>${name}</strong>`;
+            hist.prepend(item);
+        }
+    </script>
+</body>
+</html>

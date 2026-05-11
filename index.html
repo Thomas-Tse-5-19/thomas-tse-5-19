@@ -2,88 +2,86 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>易經數字占卜 - 正確版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>幸運數字分析</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .line { height: 8px; margin: 4px 0; border-radius: 4px; transition: all 0.3s; }
-        .yang { background-color: #1e293b; width: 100%; }
-        .yin { display: flex; justify-content: space-between; width: 100%; }
-        .yin div { background-color: #1e293b; width: 45%; height: 100%; border-radius: 4px; }
-        .changing { background-color: #ef4444 !important; }
+        body { background-color: #f2f2f7; font-family: -apple-system, sans-serif; }
+        .ios-input { background: #fff; border-radius: 12px; border: 1px solid #d1d1d6; padding: 16px; width: 100%; font-size: 18px; }
+        .ios-btn { background: #007aff; color: white; border-radius: 12px; padding: 16px; font-weight: 600; width: 100%; transition: opacity 0.2s; }
+        .ios-btn:active { opacity: 0.7; }
     </style>
 </head>
-<body class="bg-slate-50 p-6">
-    <div class="max-w-md mx-auto bg-white rounded-3xl shadow-xl p-8">
-        <h1 class="text-2xl font-bold text-center mb-6">梅花易數數字分析</h1>
-        
-        <input type="number" id="numInput" placeholder="輸入數字 (如: 61205702)" 
-               class="w-full border-2 border-slate-200 rounded-xl p-4 text-xl mb-4 focus:border-blue-500 outline-none">
-        
-        <button onclick="analyze()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition">
-            計算卦象
-        </button>
+<body class="p-6">
+    <div class="max-w-md mx-auto pt-10">
+        <h1 class="text-3xl font-bold mb-2">數字占卜</h1>
+        <p class="text-gray-500 mb-8">請輸入您的號碼進行解析</p>
 
-        <div id="result" class="mt-8 hidden border-t pt-6">
-            <div id="hexagramDisplay" class="flex flex-col-reverse items-center mb-6 w-32 mx-auto">
-                </div>
-            <div class="space-y-2">
-                <p class="text-sm text-slate-500 uppercase tracking-widest">分析結果</p>
-                <h2 id="guaName" class="text-3xl font-black text-slate-800">卦名</h2>
-                <p id="guaDesc" class="text-slate-600 leading-relaxed italic"></p>
+        <div class="space-y-4">
+            <input type="number" id="numInput" class="ios-input" placeholder="請輸入數字 (例如: 61205702)" inputmode="numeric">
+            <button onclick="performLookup()" class="ios-btn">開始解析</button>
+        </div>
+
+        <div id="resultBox" class="mt-10 hidden animate-pulse">
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <span class="text-blue-600 font-bold tracking-widest text-xs uppercase" id="resElement">卦象名稱</span>
+                <h2 class="text-4xl font-black mt-2 mb-4" id="resGua">--</h2>
+                <hr class="my-4">
+                <p class="text-gray-700 leading-relaxed text-lg" id="resDesc">請點擊按鈕進行查詢...</p>
             </div>
         </div>
     </div>
 
     <script>
-        const trigrams = ["坤(地)", "乾(天)", "兌(澤)", "離(火)", "震(雷)", "巽(風)", "坎(水)", "艮(山)"];
-        const linesMap = {
-            "乾(天)": [1,1,1], "坤(地)": [0,0,0], "震(雷)": [1,0,0], "巽(風)": [0,1,1],
-            "坎(水)": [0,1,0], "離(火)": [1,0,1], "艮(山)": [0,0,1], "兌(澤)": [1,1,0]
+        // 1. Data from Sheet "Calc" (Maps Number -> Hexagram Name)
+        const calcData = {
+            "61205702": "訟",
+            "5702": "歸妹",
+            "7": "損",
+            "205": "大畜",
+            "05": "小畜",
+            "120": "未濟"
+            // Add more mappings from your Excel sheet here
         };
 
-        function analyze() {
-            const val = document.getElementById('numInput').value;
-            if (!val) return;
+        // 2. Data from Sheet "卦" (Maps Hexagram Name -> Description)
+        const guaDescriptions = {
+            "訟": "非常不好的卦，打官司，是非小人，要訂定仔細合同做事。",
+            "歸妹": "回歸，再次或重新做一些事情，在感情上代表有三角關係。",
+            "損": "先短期付出才會有成果。",
+            "大畜": "豐收，農業上是非常好卦。",
+            "小畜": "小收穫，做生意代表好卦。",
+            "未濟": "很多事情需要處理好才能成功。"
+            // Add more descriptions from your Excel sheet here
+        };
 
-            // 1. Split and Sum
-            const mid = Math.ceil(val.length / 2);
-            const part1 = val.substring(0, mid).split('').reduce((a, b) => a + parseInt(b), 0);
-            const part2 = val.substring(mid).split('').reduce((a, b) => a + parseInt(b), 0);
-            const total = part1 + part2;
+        function performLookup() {
+            const input = document.getElementById('numInput').value.trim();
+            const resultBox = document.getElementById('resultBox');
+            const resGua = document.getElementById('resGua');
+            const resDesc = document.getElementById('resDesc');
 
-            // 2. Modulo Logic (Meihua Method)
-            let upperIdx = part1 % 8; if(upperIdx === 0) upperIdx = 8;
-            let lowerIdx = part2 % 8; if(lowerIdx === 0) lowerIdx = 8;
-            let changeLine = total % 6; if(changeLine === 0) changeLine = 6;
+            // Logic: A1 Lookup in Calc -> Result Lookup in 卦
+            const guaName = calcData[input];
 
-            const upperGua = trigrams[upperIdx % 8];
-            const lowerGua = trigrams[lowerIdx % 8];
-
-            // 3. Render
-            document.getElementById('result').classList.remove('hidden');
-            document.getElementById('guaName').innerText = `${upperGua} 上 ${lowerGua} 下`;
-            document.getElementById('guaDesc').innerText = `動爻：第 ${changeLine} 爻。此卦象顯示能量在第 ${changeLine} 位發生變化，請注意相應的時機轉化。`;
-
-            renderHexagram(linesMap[upperGua], linesMap[lowerGua], changeLine);
-        }
-
-        function renderHexagram(upperLines, lowerLines, change) {
-            const container = document.getElementById('hexagramDisplay');
-            container.innerHTML = '';
-            const allLines = [...lowerLines, ...upperLines]; // Bottom up
-
-            allLines.forEach((type, index) => {
-                const isChanging = (index + 1) === change;
-                const div = document.createElement('div');
-                div.className = 'w-full';
-                if (type === 1) {
-                    div.innerHTML = `<div class="line yang ${isChanging ? 'changing' : ''}"></div>`;
+            if (guaName) {
+                const description = guaDescriptions[guaName] || "找到卦象，但無相關描述。";
+                resGua.innerText = guaName;
+                resDesc.innerText = description;
+                resultBox.classList.remove('hidden');
+            } else {
+                // Fuzzy Match: Check if input contains any known keys (optional)
+                const matchedKey = Object.keys(calcData).find(key => input.includes(key));
+                if (matchedKey) {
+                    const foundGua = calcData[matchedKey];
+                    resGua.innerText = foundGua;
+                    resDesc.innerText = guaDescriptions[foundGua];
+                    resultBox.classList.remove('hidden');
                 } else {
-                    div.innerHTML = `<div class="line yin ${isChanging ? 'changing' : ''}"><div></div><div></div></div>`;
+                    alert("查無此數字之卦象，請確認輸入是否正確。");
                 }
-                container.appendChild(div);
-            });
+            }
         }
     </script>
 </body>

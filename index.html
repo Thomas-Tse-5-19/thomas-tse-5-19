@@ -2,176 +2,88 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>幸運數字占卜</title>
-    
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>易經數字占卜 - 正確版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --bg-color: #f2f2f7;
-            --card-bg: #ffffff;
-            --text-color: #000000;
-            --accent: #007aff;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-color: #000000;
-                --card-bg: #1c1c1e;
-                --text-color: #ffffff;
-            }
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: env(safe-area-inset-top) 20px 20px 20px;
-        }
-
-        .header { margin: 40px 0 20px; }
-        h1 { font-size: 34px; font-weight: 700; margin-bottom: 5px; }
-
-        .card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-
-        input {
-            width: 100%;
-            border: none;
-            background: transparent;
-            font-size: 18px;
-            color: var(--text-color);
-            padding: 10px 0;
-            outline: none;
-        }
-
-        button {
-            width: 100%;
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 15px;
-            border-radius: 12px;
-            font-size: 17px;
-            font-weight: 600;
-            margin-top: 10px;
-            cursor: pointer;
-        }
-
-        .result-card {
-            display: none;
-            border-left: 8px solid var(--accent);
-        }
-
-        .tag {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-right: 5px;
-            background: #e5e5ea;
-            color: #3a3a3c;
-        }
-
-        .history-item {
-            display: flex;
-            justify-content: space-between;
-            border-bottom: 1px solid #38383a22;
-            padding: 10px 0;
-        }
+        .line { height: 8px; margin: 4px 0; border-radius: 4px; transition: all 0.3s; }
+        .yang { background-color: #1e293b; width: 100%; }
+        .yin { display: flex; justify-content: space-between; width: 100%; }
+        .yin div { background-color: #1e293b; width: 45%; height: 100%; border-radius: 4px; }
+        .changing { background-color: #ef4444 !important; }
     </style>
 </head>
-<body>
+<body class="bg-slate-50 p-6">
+    <div class="max-w-md mx-auto bg-white rounded-3xl shadow-xl p-8">
+        <h1 class="text-2xl font-bold text-center mb-6">梅花易數數字分析</h1>
+        
+        <input type="number" id="numInput" placeholder="輸入數字 (如: 61205702)" 
+               class="w-full border-2 border-slate-200 rounded-xl p-4 text-xl mb-4 focus:border-blue-500 outline-none">
+        
+        <button onclick="analyze()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition">
+            計算卦象
+        </button>
 
-    <div class="header">
-        <h1>幸運數字</h1>
-        <p style="opacity: 0.6;">輸入您的號碼以獲取卦象資訊</p>
-    </div>
-
-    <div class="card">
-        <input type="number" id="numInput" placeholder="輸入數字 (例如: 61205702)" inputmode="numeric">
-        <button onclick="calculate()">開始占卜 <i class="fas fa-sparkles"></i></button>
-    </div>
-
-    <div id="result" class="card result-card">
-        <div id="tagContainer" style="margin-bottom: 10px;"></div>
-        <h2 id="resName" style="margin: 0 0 10px 0;"></h2>
-        <p id="resDesc" style="font-size: 15px; line-height: 1.4; opacity: 0.8;"></p>
-    </div>
-
-    <div class="header" style="margin-top: 40px;">
-        <h3>歷史紀錄</h3>
-    </div>
-    <div id="history" class="card">
-        <p id="noHistory" style="opacity: 0.5;">尚無紀錄</p>
+        <div id="result" class="mt-8 hidden border-t pt-6">
+            <div id="hexagramDisplay" class="flex flex-col-reverse items-center mb-6 w-32 mx-auto">
+                </div>
+            <div class="space-y-2">
+                <p class="text-sm text-slate-500 uppercase tracking-widest">分析結果</p>
+                <h2 id="guaName" class="text-3xl font-black text-slate-800">卦名</h2>
+                <p id="guaDesc" class="text-slate-600 leading-relaxed italic"></p>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Logic mapped from Excel "幸運數字"
-        function calculate() {
+        const trigrams = ["坤(地)", "乾(天)", "兌(澤)", "離(火)", "震(雷)", "巽(風)", "坎(水)", "艮(山)"];
+        const linesMap = {
+            "乾(天)": [1,1,1], "坤(地)": [0,0,0], "震(雷)": [1,0,0], "巽(風)": [0,1,1],
+            "坎(水)": [0,1,0], "離(火)": [1,0,1], "艮(山)": [0,0,1], "兌(澤)": [1,1,0]
+        };
+
+        function analyze() {
             const val = document.getElementById('numInput').value;
             if (!val) return;
 
-            let result = { name: "未知", color: "灰色", element: "未知", desc: "查無此數之卦象" };
+            // 1. Split and Sum
+            const mid = Math.ceil(val.length / 2);
+            const part1 = val.substring(0, mid).split('').reduce((a, b) => a + parseInt(b), 0);
+            const part2 = val.substring(mid).split('').reduce((a, b) => a + parseInt(b), 0);
+            const total = part1 + part2;
 
-            // Replicating Excel lookups[cite: 1]
-            if (val.includes("6120")) {
-                result = { name: "訟", color: "藍色", element: "火", desc: "非常不好的卦，打官司，是非小人，要訂定仔細合同做事。" };
-            } else if (val.includes("57")) {
-                result = { name: "歸妹", color: "藍色", element: "金", desc: "回歸，再次或重新做一些事情，在感情上代表有三角關係。" };
-            } else if (val.includes("7")) {
-                result = { name: "損", color: "藍色", element: "土", desc: "先短期付出才會有成果。" };
-            } else if (val.includes("205")) {
-                result = { name: "大畜", color: "紅色", element: "土", desc: "豐收，農業上是非常好卦。" };
-            } else if (val.includes("05")) {
-                result = { name: "小畜", color: "紅色", element: "木", desc: "小收穫，做生意代表好卦。" };
-            } else if (val.includes("120")) {
-                result = { name: "未濟", color: "黑色", element: "火", desc: "很多事情需要處理好才能成功。" };
-            }
+            // 2. Modulo Logic (Meihua Method)
+            let upperIdx = part1 % 8; if(upperIdx === 0) upperIdx = 8;
+            let lowerIdx = part2 % 8; if(lowerIdx === 0) lowerIdx = 8;
+            let changeLine = total % 6; if(changeLine === 0) changeLine = 6;
 
-            displayResult(val, result);
+            const upperGua = trigrams[upperIdx % 8];
+            const lowerGua = trigrams[lowerIdx % 8];
+
+            // 3. Render
+            document.getElementById('result').classList.remove('hidden');
+            document.getElementById('guaName').innerText = `${upperGua} 上 ${lowerGua} 下`;
+            document.getElementById('guaDesc').innerText = `動爻：第 ${changeLine} 爻。此卦象顯示能量在第 ${changeLine} 位發生變化，請注意相應的時機轉化。`;
+
+            renderHexagram(linesMap[upperGua], linesMap[lowerGua], changeLine);
         }
 
-        function displayResult(input, res) {
-            const card = document.getElementById('result');
-            card.style.display = 'block';
-            card.style.borderLeftColor = getColor(res.color);
-            
-            document.getElementById('resName').innerText = res.name;
-            document.getElementById('resDesc').innerText = res.desc;
-            document.getElementById('tagContainer').innerHTML = `
-                <span class="tag" style="background:${getColor(res.color)}; color:white">${res.color}</span>
-                <span class="tag">${res.element}</span>
-            `;
+        function renderHexagram(upperLines, lowerLines, change) {
+            const container = document.getElementById('hexagramDisplay');
+            container.innerHTML = '';
+            const allLines = [...lowerLines, ...upperLines]; // Bottom up
 
-            saveHistory(input, res.name);
-        }
-
-        function getColor(colorName) {
-            if (colorName === "藍色") return "#007aff";
-            if (colorName === "紅色") return "#ff3b30";
-            if (colorName === "黑色") return "#000000";
-            return "#8e8e93";
-        }
-
-        function saveHistory(num, name) {
-            const hist = document.getElementById('history');
-            const noHist = document.getElementById('noHistory');
-            if (noHist) noHist.remove();
-
-            const item = document.createElement('div');
-            item.className = 'history-item';
-            item.innerHTML = `<span>${num}</span><strong>${name}</strong>`;
-            hist.prepend(item);
+            allLines.forEach((type, index) => {
+                const isChanging = (index + 1) === change;
+                const div = document.createElement('div');
+                div.className = 'w-full';
+                if (type === 1) {
+                    div.innerHTML = `<div class="line yang ${isChanging ? 'changing' : ''}"></div>`;
+                } else {
+                    div.innerHTML = `<div class="line yin ${isChanging ? 'changing' : ''}"><div></div><div></div></div>`;
+                }
+                container.appendChild(div);
+            });
         }
     </script>
 </body>
